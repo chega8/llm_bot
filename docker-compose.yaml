@@ -1,0 +1,17 @@
+version: '3.5'
+
+services:
+  mongo:
+    env_file: .env
+    image: mongo:latest
+    container_name: mongo
+    command: mongod --port ${MONGO_PORT}
+    expose:
+      - ${MONGO_PORT}
+    ports:
+      - ${MONGO_PORT}:${MONGO_PORT}
+    volumes:
+      - dbdata6:/data/db
+
+volumes:
+  dbdata6:

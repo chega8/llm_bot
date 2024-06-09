@@ -1,0 +1,46 @@
+[tool.poetry]
+name = "llm-bot"
+version = "0.1.0"
+description = ""
+authors = ["chega8"]
+readme = "README.md"
+packages = [{include = "llm_bot"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+llama-cpp-python = "^0.2.77"
+langchain = "^0.2.3"
+langchain-community = "^0.2.4"
+python-dotenv = "^1.0.1"
+pydantic = "^2.7.3"
+pre-commit = "^3.7.1"
+python-telegram-bot = "^21.3"
+pytest = "^8.2.2"
+pydantic-settings = "^2.3.1"
+loguru = "^0.7.2"
+isort = "^5.13.2"
+black = "^24.4.2"
+motor = "^3.4.0"
+pymongo = "^4.7.3"
+pytest-asyncio = "^0.23.7"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[tool.poetry.extras]
+pipfile_deprecated_finder = ["isort"]
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+skip-string-normalization = true
+
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3
+include_trailing_comma = true
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
