@@ -118,6 +118,10 @@ class FileChatMessageHistory(BaseChatMessageHistory):
         all_messages = list(self.messages)
         all_messages.extend(messages)
 
+        logger.debug(
+            f"Adding messages, the last one: {all_messages[-1].content}, role: {all_messages[-1].type}"
+        )
+
         serialized = messages_to_dict(all_messages)
         with open(self.file_path, "w") as f:
             json.dump(serialized, f)

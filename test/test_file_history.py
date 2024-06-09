@@ -54,5 +54,5 @@ def test_add_message():
 def test_merge_all_files():
 
     all_history = merge_all_files()
-    print(all_history)
+    # print(all_history)
     print(len(all_history))

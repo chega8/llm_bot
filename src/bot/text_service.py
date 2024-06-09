@@ -19,7 +19,7 @@ def text_chat_service(user_id: int, text: str, msg_date: datetime):
 
         messages = chat_history.messages
         new_messages = []
-        if not messages:
+        if len(messages) == 0:
             new_messages.append(
                 SystemMessage(
                     content=llm.system_prompt,
@@ -41,7 +41,8 @@ def text_chat_service(user_id: int, text: str, msg_date: datetime):
 
         llm_inputs = [msg.content for msg in messages + new_messages]
         conversation.add_user_message(llm_inputs)
-        logger.info(f"Symbols in prompty: {len(conversation.get_prompt())}")
+        logger.debug(f"Symbols in prompt: {len(conversation.get_prompt())}")
+        print(conversation.get_prompt())
 
         response = llm.predict_conversation(conversation)
 

@@ -9,8 +9,12 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from src.data.history import FileChatMessageHistory
 
+FILE_HISTORY_PATH = "data/history"
+
 
 def merge_all_files():
+    if not os.path.exists("data/history"):
+        os.makedirs("data/history")
 
     all_users = os.listdir("data/history")
     full_messages = []

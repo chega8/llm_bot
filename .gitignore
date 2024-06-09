@@ -163,3 +163,4 @@ cython_debug/
 
 data/history/
 test/data/
+secrets
