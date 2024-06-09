@@ -43,7 +43,7 @@ def text_chat_service(user_id: int, text: str, msg_date: datetime):
         conversation.add_user_message(llm_inputs)
         logger.info(f"Symbols in prompty: {len(conversation.get_prompt())}")
 
-        response = llm.predict(conversation)
+        response = llm.predict_conversation(conversation)
 
         new_messages.append(
             AIMessage(
