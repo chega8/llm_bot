@@ -6,7 +6,7 @@ from loguru import logger
 
 from src.data.history import FileChatMessageHistory, MongoDBChatMessageHistory
 from src.data.utils import merge_all_files
-from src.models.conversation import SaigaConversation
+from src.models.conversation import MistralConversation, SaigaConversation
 from src.models.models import SaigaLLM
 from src.services.llm_service import LLMService
 
@@ -17,12 +17,13 @@ def text_chat_service(user_id: int, text: str, msg_date: datetime):
     # await chat_history.clear()
 
     llm = SaigaLLM()
-    conversation = SaigaConversation()
+    # conversation = SaigaConversation()
+    conversation = MistralConversation()
     llm_service = LLMService(llm, conversation)
 
     messages = chat_history.messages
     for message in messages:
-        logger.debug(f"Message: {message.content}")
+        logger.debug(f"Message: {message.content}, type: {message.type}")
     logger.debug(f"History hessages count: {len(messages)}")
 
     new_messages = []
@@ -38,7 +39,7 @@ def text_chat_service(user_id: int, text: str, msg_date: datetime):
         )
     new_messages.append(
         HumanMessage(
-            content=text,
+            content=text.replace("/chat ", ""),
             additional_kwargs={
                 "type": "text",
                 "timestamp": int(msg_date.timestamp()),
@@ -46,8 +47,7 @@ def text_chat_service(user_id: int, text: str, msg_date: datetime):
         )
     )
 
-    # Already have system prompt inside conversation instance
-    ai_response = llm_service.generate_response_for_history(new_messages)
+    ai_response = llm_service.generate_response_for_history(messages[1:] + new_messages)
 
     new_messages.append(
         AIMessage(
@@ -70,7 +70,8 @@ def text_chat_service(user_id: int, text: str, msg_date: datetime):
 def single_message_predict(user_id: int, text: str, msg_date: datetime):
     try:
         llm = SaigaLLM()
-        conversation = SaigaConversation()
+        # conversation = SaigaConversation()
+        conversation = MistralConversation()
         llm_service = LLMService(llm, conversation)
 
         ai_response = llm_service.predict_single(text)

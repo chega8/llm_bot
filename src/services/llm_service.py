@@ -18,7 +18,8 @@ class LLMService:
 
     def generate_response_for_history(self, history: Sequence[BaseMessage]) -> str:
         for msg in history:
-            if msg.type == "user":
+            # print(f"*** Message: {msg.content}, Type: {msg.type}""")
+            if msg.type == "human":
                 self.conversation.add_user_message(msg.content)
             elif msg.type == "ai":
                 self.conversation.add_bot_message(msg.content)
