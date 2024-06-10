@@ -17,9 +17,9 @@ from telegram.ext import (
     filters,
 )
 
+from models.models import SaigaLLM
 from src.bot.handlers import *
 from src.conf import settings
-from src.models import SaigaLLM
 
 
 def main() -> None:
@@ -32,7 +32,7 @@ def main() -> None:
             CommandHandler("start", handle_start, block=False),
             CommandHandler("my_id", handle_user_id, block=False),
             CommandHandler("msg", single_message_handler, block=False),
-            CommandHandler("ctx", text_chat_handler, block=False),
+            CommandHandler("chat", text_chat_handler, block=False),
             CommandHandler("hist", full_history_predict_handler, block=False),
             CommandHandler("drop", drop_context_handler, block=False),
             MessageHandler(filters.TEXT, text_chat_handler, block=False),

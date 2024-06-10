@@ -2,9 +2,13 @@ from loguru import logger
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from src.bot.text_service import full_history_predict, text_chat_service
+from models.models import SaigaLLM
+from src.bot.text_service import (
+    full_history_predict,
+    single_message_predict,
+    text_chat_service,
+)
 from src.data.utils import drop_context
-from src.models import SaigaLLM
 
 
 async def text_chat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -19,8 +23,9 @@ async def text_chat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def single_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    llm = SaigaLLM()
-    reply_msg = llm.predict(update.message.text)
+    reply_msg = single_message_predict(
+        update.message.from_user.id, update.message.text, update.message.date
+    )
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=reply_msg,
