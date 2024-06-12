@@ -4,11 +4,19 @@ from pydantic import Extra
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class TelegramSettings(BaseSettings):
+class BotSettings(BaseSettings):
     token: str
 
     model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", env_prefix="TG_", extra="allow"
+        env_file=".env", env_file_encoding="utf-8", env_prefix="BOT_", extra="allow"
+    )
+
+
+class ChatSettings(BaseSettings):
+    max_history_len: int
+
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", env_prefix="CHAT_", extra="allow"
     )
 
 
@@ -23,10 +31,6 @@ class LLMSettings(BaseSettings):
     )
 
 
-class BotSettings(BaseSettings):
-    start_message: str = "Hello!"
-
-
 class MongoSettings(BaseSettings):
     host: str
     port: int
@@ -38,7 +42,7 @@ class MongoSettings(BaseSettings):
 
 class Settings(BaseSettings):
     model: LLMSettings = LLMSettings()
-    telegram: TelegramSettings = TelegramSettings()
+    chat: ChatSettings = ChatSettings()
     bot: BotSettings = BotSettings()
     mongo: MongoSettings = MongoSettings()
 

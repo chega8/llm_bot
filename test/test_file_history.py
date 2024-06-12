@@ -9,7 +9,6 @@ import pytest
 from langchain.schema import AIMessage, HumanMessage, SystemMessage
 
 from src.data.history import FileChatMessageHistory
-from src.data.utils import merge_all_files
 from src.dep.mongo import get_mongo
 
 
@@ -49,10 +48,3 @@ def test_add_message():
 
     f.clear()
     assert len(f.messages) == 0
-
-
-def test_merge_all_files():
-
-    all_history = merge_all_files()
-    # print(all_history)
-    print(len(all_history))

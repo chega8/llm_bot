@@ -25,17 +25,19 @@ from src.conf import settings
 def main() -> None:
     Path(".tmp").mkdir(parents=True, exist_ok=True)
 
-    app = Application.builder().token(settings.telegram.token).build()
+    app = Application.builder().token(settings.bot.token).build()
 
     app.add_handlers(
         [
             CommandHandler("start", handle_start, block=False),
             CommandHandler("my_id", handle_user_id, block=False),
             CommandHandler("msg", single_message_handler, block=False),
-            CommandHandler("chat", text_chat_handler, block=False),
-            CommandHandler("hist", full_history_predict_handler, block=False),
+            CommandHandler("chat", text_chat_history_handler, block=False),
             CommandHandler("drop", drop_context_handler, block=False),
-            MessageHandler(filters.TEXT, text_chat_handler, block=False),
+            CommandHandler("agent", search_handler, block=False),
+            CommandHandler("show", show_history, block=False),
+            # MessageHandler(filters.TEXT, text_chat_handler, block=False),
+            MessageHandler(filters.TEXT, handle_store_msg, block=False),
         ]
     )
     app.run_polling(allowed_updates=Update.ALL_TYPES)

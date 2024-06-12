@@ -23,6 +23,9 @@ black = "^24.4.2"
 motor = "^3.4.0"
 pymongo = "^4.7.3"
 pytest-asyncio = "^0.23.7"
+tavily-python = "^0.3.3"
+langchainhub = "^0.1.18"
+langgraph = "^0.0.66"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

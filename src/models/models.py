@@ -1,7 +1,3 @@
-from langchain_community.llms import LlamaCpp
-from langchain_core.callbacks import CallbackManager, StreamingStdOutCallbackHandler
-from langchain_core.prompts import PromptTemplate
-
 from src.conf import settings
 from src.dep.llm import get_saiga_llm_llamacpp
 
