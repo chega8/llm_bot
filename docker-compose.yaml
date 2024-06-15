@@ -1,17 +1,40 @@
 version: '3.5'
 
 services:
-  mongo:
-    env_file: .env
-    image: mongo:latest
-    container_name: mongo
-    command: mongod --port ${MONGO_PORT}
-    expose:
-      - ${MONGO_PORT}
+  db:
+    image: postgres:14-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_DB: chat_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
     ports:
-      - ${MONGO_PORT}:${MONGO_PORT}
+      - "5432:5432"
     volumes:
-      - dbdata6:/data/db
+      - postgres_data:/var/lib/postgresql/data
+
+  bot:
+    build: .
+    container_name: bot
+    env_file:
+      - .env
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+
+  # grafana:
+  #   image: grafana/grafana-enterprise
+  #   container_name: grafana
+  #   restart: unless-stopped
+  #   ports:
+  #    - '3000:3000'
+  #   volumes:
+  #     # - grafana-storage:/var/lib/grafana
+  #     - '$PWD/data:/var/lib/grafana'
+
 
 volumes:
-  dbdata6:
+  grafana-storage: {}
+  postgres_data:
+  # dbdata6:

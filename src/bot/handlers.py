@@ -18,7 +18,10 @@ from src.bot.text_service import (
 
 async def text_chat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_msg = text_chat_service(
-        update.effective_chat.id, update.message.text, update.message.date
+        update.effective_chat.id,
+        update.message.from_user.id,
+        update.message.text,
+        update.message.date,
     )
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
@@ -29,7 +32,10 @@ async def text_chat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def text_chat_history_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_msg = text_chat_history(
-        update.effective_chat.id, update.message.text, update.message.date
+        update.effective_chat.id,
+        update.message.from_user.id,
+        update.message.text,
+        update.message.date,
     )
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
@@ -40,7 +46,10 @@ async def text_chat_history_handler(update: Update, context: ContextTypes.DEFAUL
 
 async def single_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_msg = single_message_predict(
-        update.message.from_user.id, update.message.text, update.message.date
+        update.effective_chat.id,
+        update.message.from_user.id,
+        update.message.text,
+        update.message.date,
     )
     await context.bot.send_message(
         chat_id=update.effective_chat.id,

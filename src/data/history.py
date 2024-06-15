@@ -1,81 +1,21 @@
 import json
 import os
+from datetime import datetime
 from typing import Dict, List, Sequence
 
-from langchain.schema import BaseChatMessageHistory
+from langchain.schema import (
+    AIMessage,
+    BaseChatMessageHistory,
+    HumanMessage,
+    SystemMessage,
+)
 from langchain.schema.messages import BaseMessage, messages_from_dict, messages_to_dict
 from loguru import logger
-from pymongo import errors
 
-from src.dep.mongo import get_mongo
-
-
-class MongoDBChatMessageHistory(BaseChatMessageHistory):
-    """Chat message history that stores history in MongoDB."""
-
-    index_created: bool = False
-
-    def __init__(self, database_name: str, user_id: int, session_id: str = None):
-        self.db = get_mongo().get_database(database_name)
-        self.collection = self.db["chats"]
-        self.user_id = user_id
-        self.session_id = session_id
-
-    @staticmethod
-    def _message_to_dict(message: BaseMessage) -> dict:
-        return {"type": message.type, "data": message.dict()}
-
-    def messages_to_dict(self, messages: Sequence[BaseMessage]) -> Dict[str, dict]:
-        return {
-            f"History.{m.additional_kwargs.get('timestamp')}": self._message_to_dict(m)
-            for m in messages
-        }
-
-    async def setup(self):
-        await self.collection.create_index(["user_id", "session_id"])
-
-    @property
-    async def messages(self):
-        """Retrieve the messages from MongoDB"""
-        filters = {"user_id": self.user_id}
-        if self.session_id is not None:
-            filters["session_id"] = self.session_id
-        cursor = self.collection.find(filters)
-        async for c in cursor:
-            yield c.get("session_id"), messages_from_dict(
-                list(c.get("History", {}).values())
-            )
-
-    async def add_messages(self, messages: List[BaseMessage]) -> None:
-        try:
-            await self.collection.update_one(
-                {"user_id": self.user_id, "session_id": self.session_id},
-                {"$set": self.messages_to_dict(messages)},
-                upsert=True,
-            )
-        except errors.WriteError as err:
-            logger.error(err)
-
-    async def add_message(self, message: BaseMessage) -> None:
-        """Append the message to the record in MongoDB"""
-        await self.add_messages([message])
-
-    async def remove_message(self, key: str) -> None:
-        try:
-            await self.collection.update_one(
-                {"user_id": self.user_id, "session_id": self.session_id},
-                {"$unset": {f"History.{key}": ""}},
-                upsert=True,
-            )
-        except errors.WriteError as err:
-            logger.error(err)
-
-    async def clear(self) -> None:
-        """Clear session memory from MongoDB"""
-        try:
-            await self.collection.delete_many({"user_id": self.user_id})
-        except errors.WriteError as err:
-            logger.error(err)
+from src.db.repository import MessageRepository
+from src.db.schema import Message
+from src.dep.postgres import get_postgres
+from src.services.message_service import MessageService
 
 
 class FileChatMessageHistory(BaseChatMessageHistory):
@@ -133,3 +73,60 @@ class FileChatMessageHistory(BaseChatMessageHistory):
             return
         with open(self.file_path, "w") as f:
             f.write("[]")
+
+
+class PostgresHistory(BaseChatMessageHistory):
+    def __init__(self, user_id: int, session_id: str = None):
+        self.user_id = user_id
+        if session_id is None:
+            session_id = str(user_id)
+
+        self.session_id = session_id
+        self.postgres = MessageService(get_postgres())
+
+    @property
+    def messages(self):
+        messages_postgres = self.postgres.get_all_messages()
+        messages_langchain = []
+        for message in messages_postgres:
+            if message.role == "system":
+                messages_langchain.append(
+                    SystemMessage(
+                        content=message.message,
+                        additional_kwargs={
+                            "type": "system",
+                            "timestamp": int(message.datetime),
+                        },
+                    )
+                )
+            elif message.role == "human":
+                messages_langchain.append(
+                    HumanMessage(
+                        content=message.message,
+                        additional_kwargs={
+                            "type": "text",
+                            "timestamp": int(message.datetime),
+                        },
+                    )
+                )
+            elif message.role == "ai":
+                messages_langchain.append(
+                    AIMessage(
+                        content=message.message,
+                        additional_kwargs={
+                            "type": "text",
+                            "timestamp": int(message.datetime),
+                        },
+                    )
+                )
+
+        return messages_langchain
+
+    def add_messages(self, messages: Sequence[BaseMessage]) -> None:
+        for message in messages:
+            self.postgres.add_message(
+                self.session_id, self.user_id, message.content, datetime.now()
+            )
+
+    def clear(self):
+        self.postgres.clear_messages()

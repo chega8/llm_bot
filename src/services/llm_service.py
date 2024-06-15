@@ -70,7 +70,7 @@ class LLMChainService:
 
         if (
             self.llm.get_num_tokens_from_messages(self.history.messages)
-            > settings.model.max_tokens * 0.75
+            > (settings.model.ctx - settings.model.max_tokens) * 0.9
         ):
             self.history.clear()
             self.conversation_sum_bufw.memory.clear()

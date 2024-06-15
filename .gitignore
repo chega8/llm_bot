@@ -165,3 +165,4 @@ data/history/
 test/data/
 secrets
 .session
+model/*.gguf

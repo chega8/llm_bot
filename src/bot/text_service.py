@@ -6,9 +6,7 @@ from loguru import logger
 
 from data.prompts import CONVERSATION_PROMPT
 from src.conf import settings
-from src.data.history import FileChatMessageHistory
-from src.models.conversation import MistralConversation, SaigaConversation
-from src.models.models import SaigaLLM
+from src.data.history import FileChatMessageHistory, PostgresHistory
 from src.services.agent_service import AgentSearch
 from src.services.llm_service import LLMChainService, LLMService
 
@@ -20,9 +18,10 @@ ID_TO_NAME = {
 }
 
 
-def text_chat_service(user_id: int, text: str, msg_date: datetime):
+def text_chat_service(chat_id: int, user_id: int, text: str, msg_date: datetime):
     # try:
     chat_history = FileChatMessageHistory("data/history", user_id)
+    chat_history = PostgresHistory(user_id, chat_id)
     # await chat_history.clear()
 
     llm_service = LLMChainService(chat_history)
@@ -75,8 +74,9 @@ def text_chat_service(user_id: int, text: str, msg_date: datetime):
     return reply_msg
 
 
-def text_chat_history(chat_id, text: str, msg_date: datetime):
-    chat_history = FileChatMessageHistory("data/history", chat_id)
+def text_chat_history(chat_id: int, user_id: int, text: str, msg_date: datetime):
+    # chat_history = FileChatMessageHistory("data/history", chat_id)
+    chat_history = PostgresHistory(user_id, chat_id)
     llm_service = LLMChainService(chat_history)
     ai_response = llm_service.generate_response_for_history(text.replace("/chat ", ""))
     reply_msg = ai_response['response']
@@ -84,7 +84,8 @@ def text_chat_history(chat_id, text: str, msg_date: datetime):
 
 
 def collect_chat_history(chat_id: int, user_id: int, text: str, msg_date: datetime):
-    chat_history = FileChatMessageHistory("data/history", chat_id)
+    # chat_history = FileChatMessageHistory("data/history", chat_id)
+    chat_history = PostgresHistory(user_id, chat_id)
     messages = chat_history.messages
 
     name = ID_TO_NAME.get(user_id, "Unknown")
@@ -112,9 +113,10 @@ def show_chat_history(chat_id: int) -> list[str]:
     return "\n\n".join([msg.content for msg in chat_history.messages])
 
 
-def single_message_predict(user_id: int, text: str, msg_date: datetime):
+def single_message_predict(chat_id: int, user_id: int, text: str, msg_date: datetime):
     try:
-        chat_history = FileChatMessageHistory("data/history", user_id)
+        # chat_history = FileChatMessageHistory("data/history", user_id)
+        chat_history = PostgresHistory(user_id, chat_id)
         llm_service = LLMChainService(chat_history)
 
         ai_response = llm_service.predict_single(text.replace("/msg ", ""))

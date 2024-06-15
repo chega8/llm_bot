@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 
 from loguru import logger
+from prometheus_client import Counter
 from telegram import Bot, StickerSet, Update
 from telegram.ext import CallbackContext, Updater
 
@@ -44,8 +45,11 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
-    # try:
-    #     main()
-    # except Exception as ex:
-    #     logger.error(ex)
+    try:
+        errors_counter = Counter(
+            'application_errors', 'Number of errors in the application'
+        )
+        main()
+    except Exception as ex:
+        logger.error(ex)
+        errors_counter.inc()

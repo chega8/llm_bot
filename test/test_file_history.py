@@ -8,8 +8,8 @@ from datetime import datetime
 import pytest
 from langchain.schema import AIMessage, HumanMessage, SystemMessage
 
+from dep.postgres import get_mongo
 from src.data.history import FileChatMessageHistory
-from src.dep.mongo import get_mongo
 
 
 def test_init():
