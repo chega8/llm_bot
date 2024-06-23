@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Sequence
 
 from langchain.schema import (
@@ -12,15 +12,13 @@ from langchain.schema import (
 from langchain.schema.messages import BaseMessage, messages_from_dict, messages_to_dict
 from loguru import logger
 
-from src.db.repository import MessageRepository
-from src.db.schema import Message
-from src.dep.postgres import get_postgres
+from src.conf import Role, settings
 from src.services.message_service import MessageService
 
 
 class FileChatMessageHistory(BaseChatMessageHistory):
-    def __init__(self, storage_path: str, user_id: int, session_id: str = None):
-        self.storage_path = storage_path
+    def __init__(self, user_id: str, session_id: int = None):
+        self.storage_path = 'data/history'
         self.user_id = user_id
         if session_id is None:
             session_id = str(user_id)
@@ -76,56 +74,65 @@ class FileChatMessageHistory(BaseChatMessageHistory):
 
 
 class PostgresHistory(BaseChatMessageHistory):
-    def __init__(self, user_id: int, session_id: str = None):
+    def __init__(self, user_id: str, chat_id: str, pg_conn):
         self.user_id = user_id
-        if session_id is None:
-            session_id = str(user_id)
-
-        self.session_id = session_id
-        self.postgres = MessageService(get_postgres())
+        self.session_id = chat_id
+        self.postgres = MessageService(pg_conn)
 
     @property
     def messages(self):
-        messages_postgres = self.postgres.get_all_messages()
+        messages_postgres = self.postgres.get_filtered_messages(
+            chat_id=self.session_id, limit=settings.chat.max_history_len
+        )
         messages_langchain = []
         for message in messages_postgres:
-            if message.role == "system":
-                messages_langchain.append(
-                    SystemMessage(
-                        content=message.message,
-                        additional_kwargs={
-                            "type": "system",
-                            "timestamp": int(message.datetime),
-                        },
+            match message.role:
+                case Role.SYSTEM:
+                    messages_langchain.append(
+                        SystemMessage(
+                            content=message.message,
+                            additional_kwargs={
+                                "type": "system",
+                                "timestamp": message.datetime,
+                            },
+                        )
                     )
-                )
-            elif message.role == "human":
-                messages_langchain.append(
-                    HumanMessage(
-                        content=message.message,
-                        additional_kwargs={
-                            "type": "text",
-                            "timestamp": int(message.datetime),
-                        },
+                case Role.USER:
+                    messages_langchain.append(
+                        HumanMessage(
+                            content=message.message,
+                            additional_kwargs={
+                                "type": "text",
+                                "timestamp": message.datetime,
+                            },
+                        )
                     )
-                )
-            elif message.role == "ai":
-                messages_langchain.append(
-                    AIMessage(
-                        content=message.message,
-                        additional_kwargs={
-                            "type": "text",
-                            "timestamp": int(message.datetime),
-                        },
+                case Role.AI:
+                    messages_langchain.append(
+                        AIMessage(
+                            content=message.message,
+                            additional_kwargs={
+                                "type": "text",
+                                "timestamp": message.datetime,
+                            },
+                        )
                     )
-                )
-
         return messages_langchain
 
     def add_messages(self, messages: Sequence[BaseMessage]) -> None:
         for message in messages:
+            match message.type:
+                case "system":
+                    role = Role.SYSTEM
+                case "human":
+                    role = Role.USER
+                case "ai":
+                    role = Role.AI
+                case _:
+                    role = Role.USER
+
             self.postgres.add_message(
-                self.session_id, self.user_id, message.content, datetime.now()
+                self.session_id, self.user_id, message.content, role, datetime.now()
             )
 
     def clear(self):

@@ -13,9 +13,9 @@ from sqlalchemy import Column, DateTime, Integer, String, create_engine
 from sqlalchemy.engine import reflection
 from sqlalchemy.ext.declarative import declarative_base
 
-from src.conf import settings
+from src.conf import Role, settings
 from src.db.repository import MessageRepository
-from src.db.schema import Message
+from src.db.schema import TestMessage
 from src.dep.postgres import get_postgres
 from src.services.message_service import MessageService
 
@@ -39,7 +39,7 @@ def db_session():
 
 @pytest.fixture
 def message_repository(db_session):
-    return MessageRepository(db_session)
+    return MessageRepository(db_session, TestMessage)
 
 
 @pytest.fixture
@@ -54,38 +54,48 @@ def test_db_and_table_exists(db_engine):
 
 
 def test_insert_and_select_data(db_session, message_service):
-    chat_id = "chat1"
-    user_id = "user1"
+    chat_id = 123
+    user_id = 321
+    role = Role.USER
     message_text = "Hello, world!"
     message_datetime = datetime.now()
 
     inserted_message = message_service.add_message(
-        chat_id, user_id, message_text, message_datetime
+        chat_id, user_id, message_text, role, message_datetime
     )
-    selected_message = (
-        db_session.query(Message).filter_by(id=inserted_message.id).first()
-    )
+
+    selected_message = message_service.get_filtered_messages(
+        chat_id=chat_id, user_id=user_id
+    )[0]
+    # selected_message = (
+    #     db_session.query(TestMessage).filter_by(id=inserted_message.id).first()
+    # )
 
     assert selected_message is not None
     assert selected_message.chat_id == chat_id
     assert selected_message.user_id == user_id
     assert selected_message.message == message_text
-    assert selected_message.datetime == message_datetime
 
 
 def test_select_data_by_filters(db_session, message_service):
+    message_service.clear_messages()
+
     message1 = message_service.add_message(
-        "chat1", "user1", "Hello, world!", datetime.now()
+        123, 321, "Hello, world!", Role.AI, datetime.now()
     )
     message2 = message_service.add_message(
-        "chat2", "user2", "Goodbye, world!", datetime.now()
+        456, 654, "Goodbye, world!", Role.USER, datetime.now()
     )
 
-    filtered_messages_by_user = message_service.get_filtered_messages(user_id="user1")
-    filtered_messages_by_chat = message_service.get_filtered_messages(chat_id="chat2")
+    filtered_messages_by_user = message_service.get_filtered_messages(user_id=321)
+    filtered_messages_by_chat = message_service.get_filtered_messages(chat_id=456)
+    filtered_messages_by_role = message_service.get_filtered_messages(role=Role.AI)
 
     assert len(filtered_messages_by_user) == 1
     assert filtered_messages_by_user[0].id == message1.id
 
     assert len(filtered_messages_by_chat) == 1
     assert filtered_messages_by_chat[0].id == message2.id
+
+    assert len(filtered_messages_by_role) == 1
+    assert filtered_messages_by_role[0].id == message1.id

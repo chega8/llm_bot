@@ -37,7 +37,7 @@ def main() -> None:
             CommandHandler("drop", drop_context_handler, block=False),
             CommandHandler("agent", search_handler, block=False),
             CommandHandler("show", show_history, block=False),
-            # MessageHandler(filters.TEXT, text_chat_handler, block=False),
+            CommandHandler("summary", show_history_summary, block=False),
             MessageHandler(filters.TEXT, handle_store_msg, block=False),
         ]
     )

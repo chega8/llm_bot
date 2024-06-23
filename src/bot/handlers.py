@@ -4,34 +4,13 @@ from loguru import logger
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from models.models import SaigaLLM
-from src.bot.text_service import (
-    collect_chat_history,
-    drop_context,
-    search_agent_service,
-    show_chat_history,
-    single_message_predict,
-    text_chat_history,
-    text_chat_service,
-)
+from src.services.text_bot_service import TextSerivce
 
-
-async def text_chat_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_msg = text_chat_service(
-        update.effective_chat.id,
-        update.message.from_user.id,
-        update.message.text,
-        update.message.date,
-    )
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=reply_msg,
-        reply_to_message_id=update.message.id,
-    )
+text_bot_service = TextSerivce()
 
 
 async def text_chat_history_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_msg = text_chat_history(
+    reply_msg = text_bot_service.text_chat_history(
         update.effective_chat.id,
         update.message.from_user.id,
         update.message.text,
@@ -45,7 +24,7 @@ async def text_chat_history_handler(update: Update, context: ContextTypes.DEFAUL
 
 
 async def single_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_msg = single_message_predict(
+    reply_msg = text_bot_service.single_message_predict(
         update.effective_chat.id,
         update.message.from_user.id,
         update.message.text,
@@ -59,8 +38,11 @@ async def single_message_handler(update: Update, context: ContextTypes.DEFAULT_T
 
 
 async def search_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_msg = search_agent_service(
-        update.message.from_user.id, update.message.text, update.message.date
+    reply_msg = text_bot_service.search_agent_service(
+        update.effective_chat.id,
+        update.message.from_user.id,
+        update.message.text,
+        update.message.date,
     )
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
@@ -70,8 +52,12 @@ async def search_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def drop_context_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    drop_context(update.effective_chat.id)
-    drop_context(update.message.from_user.id)
+    text_bot_service.drop_context(
+        update.effective_chat.id,
+        update.message.from_user.id,
+        update.message.text,
+        update.message.date,
+    )
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="Context dropped!",
@@ -96,7 +82,7 @@ async def handle_user_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def handle_store_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    collect_chat_history(
+    text_bot_service.collect_chat_history(
         update.effective_chat.id,
         update.message.from_user.id,
         update.message.text,
@@ -106,7 +92,21 @@ async def handle_store_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def show_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    reply_msg = show_chat_history(update.effective_chat.id)
+    reply_msg = text_bot_service.show_chat_history(
+        update.effective_chat.id,
+        update.message.from_user.id,
+    )
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=reply_msg,
+        reply_to_message_id=update.message.id,
+    )
+
+
+async def show_history_summary(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    reply_msg = text_bot_service.history_summary(
+        update.effective_chat.id, update.message.from_user.id
+    )
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=reply_msg,

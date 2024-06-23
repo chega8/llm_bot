@@ -1,9 +1,14 @@
-from sqlalchemy import Column, DateTime, Integer, String, create_engine
+import sqlalchemy
+from sqlalchemy import Column, DateTime, Enum, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 
 from src.conf import Role
 
 Base = declarative_base()
+
+role_type = sqlalchemy.types.Enum(
+    Role, name='role', values_callable=lambda obj: [e.value for e in obj]
+)
 
 
 class Message(Base):
@@ -12,7 +17,8 @@ class Message(Base):
     chat_id = Column(String, index=True)
     user_id = Column(String, index=True)
     message = Column(String)
-    role = Column(String, default=Role.USER.value)
+    # role = Column(Enum("user", "ai", "system", name="role", create_type=False), default=Role.USER.value)
+    role = Column(role_type, default=Role.USER.value)
     datetime = Column(DateTime)
 
 
@@ -22,4 +28,6 @@ class TestMessage(Base):
     chat_id = Column(String, index=True)
     user_id = Column(String, index=True)
     message = Column(String)
+    # role = Column(String, default=Role.USER.value)
+    role = Column(role_type, default=Role.USER.value)
     datetime = Column(DateTime)

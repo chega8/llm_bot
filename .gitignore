@@ -166,3 +166,5 @@ test/data/
 secrets
 .session
 model/*.gguf
+.DS_Store
+.idea/

@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package llm;
+
+service LLM {
+    rpc PredictConversation(PredictRequest) returns (PredictResponse);
+    rpc PredictMessage(PredictRequest) returns (PredictResponse);
+    rpc PredictRAG(PredictRequest) returns (PredictResponse);
+    rpc PredictAgent(PredictRequest) returns (PredictResponse);
+    rpc Summary(PredictRequest) returns (PredictResponse);
+    rpc GatherMessage(PredictRequest) returns (empty);
+    rpc ClearHistory(PredictRequest) returns (empty);
+}
+
+message PredictRequest {
+    string input_text = 1;
+    int32 chat_id = 2;
+    int32 user_id = 3;
+    int32 timestamp = 4;
+}
+
+message PredictResponse {
+    string prediction = 1;
+}
+
+message empty {}

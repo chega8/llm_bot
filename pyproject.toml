@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "llm_bot"}]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.11"
 llama-cpp-python = "^0.2.77"
 langchain = "^0.2.3"
 langchain-community = "^0.2.4"
@@ -29,6 +29,11 @@ langgraph = "^0.0.66"
 prometheus-client = "^0.20.0"
 psycopg2 = "^2.9.9"
 asyncpg = "^0.29.0"
+grpcio = "^1.64.1"
+grpcio-tools = "^1.64.1"
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.4"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -38,7 +43,7 @@ pipfile_deprecated_finder = ["isort"]
 
 [tool.black]
 line-length = 88
-target-version = ['py39']
+target-version = ['py311']
 skip-string-normalization = true
 
 [tool.isort]

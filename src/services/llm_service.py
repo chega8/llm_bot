@@ -5,77 +5,81 @@ from typing import Sequence
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from langchain.chains import ConversationChain
+from langchain.chains.combine_documents.stuff import StuffDocumentsChain
 from langchain.chains.conversation.memory import ConversationSummaryBufferMemory
-from langchain.schema import BaseMessage
-from langchain_core.prompts.prompt import PromptTemplate
+from langchain.chains.llm import LLMChain
+from langchain.chains.summarize import load_summarize_chain
+from langchain.schema import BaseChatMessageHistory, BaseMessage
+from langchain_core.prompts import PromptTemplate
 from loguru import logger
 
-from data.prompts import CONVERSATION_PROMPT, SUMMARY_PROMPT
+from data.prompts import SUMMARY_PROMPT, mistral_saiga
 from src.conf import settings
-from src.data.history import FileChatMessageHistory
 from src.dep.llm import get_saiga_llm_llamacpp
-from src.models.conversation import BaseConversation
-from src.models.models import BaseLLM
 
 
-class LLMService:
-    def __init__(self, llm: BaseLLM, conversation: BaseConversation):
-        self.llm = llm
-        self.conversation = conversation
-
-    def generate_response_for_history(self, history: Sequence[BaseMessage]) -> str:
-        for msg in history:
-            # print(f"*** Message: {msg.content}, Type: {msg.type}""")
-            if msg.type == "human":
-                self.conversation.add_user_message(msg.content)
-            elif msg.type == "ai":
-                self.conversation.add_bot_message(msg.content)
-
-        prompt = self.conversation.get_prompt()
-        # logger.debug(f"Symbols in prompt: {len(prompt)}")
-
-        return self.llm.predict(prompt)
-
-    def predict_single(self, prompt: str) -> str:
-        self.conversation.add_user_message(prompt)
-        prompt = self.conversation.get_prompt()
-        return self.llm.predict(prompt)
-
-
-class LLMChainService:
-    def __init__(self, chat_history: FileChatMessageHistory):
-        self.history = chat_history
+class LLMConversationService:
+    def __init__(self):
+        self.history = None
 
         self.llm = get_saiga_llm_llamacpp()
+        self.llm_chain = LLMChain(
+            llm=self.llm,
+            prompt=PromptTemplate.from_template(mistral_saiga["default_system_prompt"]),
+        )
+        self.summary_chain = LLMChain(
+            llm=self.llm, prompt=PromptTemplate.from_template(SUMMARY_PROMPT)
+        )
+
+    def generate_response_for_history(self, text: str) -> str:
+        # print('\n**** Buffer:')
+        # print(self.conversation_sum_bufw.memory.buffer)
+
+        if (
+            self.llm.get_num_tokens_from_messages(self.history.messages)
+            > (settings.model.ctx - settings.model.max_tokens) * 0.9
+        ):
+            self.conversation_sum_bufw.memory.clear()
+            logger.info("Buffer cleared")
+
+        return self.conversation_sum_bufw.invoke(text)
+
+    def summary(self) -> str:
+        messages = self.history.messages
+        inp = "\n".join([f"{msg.type}: {msg.content}" for msg in messages[1:]])
+        logger.info(f"Summary input: {inp[:100]}")
+        # return self.summary_chain.invoke(inp)
+        return self.summary_chain.invoke(messages)
+
+    def set_args(self, chat_id: str, user_id: str, timestamp=None):
+        self.history.session_id = chat_id
+        self.history.user_id = user_id
+        self.conversation_sum_bufw.memory.chat_memory.session_id = chat_id
+        self.conversation_sum_bufw.memory.chat_memory.user_id = user_id
+
+    def predict_single(self, prompt: str) -> str:
+        return self.llm_chain.invoke(prompt)
+
+    def init_conversation_buffer(self, history=None):
+        self.history = history
         self.conversation_sum_bufw = ConversationChain(
             llm=self.llm,
             prompt=PromptTemplate(
-                template=CONVERSATION_PROMPT, input_variables=['history', 'input']
+                template=mistral_saiga["conversation_prompt"],
+                input_variables=['history', 'input'],
             ),
+            verbose=True,
             memory=ConversationSummaryBufferMemory(
                 llm=self.llm,
                 max_token_limit=650,
                 human_prefix='Человек',
                 ai_prefix='ИИ',
                 prompt=PromptTemplate(
-                    template=SUMMARY_PROMPT, input_variables=['summary', 'new_lines']
+                    template=mistral_saiga["conversation_summary_prompt"],
+                    input_variables=['summary', 'new_lines'],
                 ),
-                chat_memory=self.history,
+                chat_memory=history,
+                verbose=True,
             ),
         )
-
-    def generate_response_for_history(self, text: str) -> str:
-        print('**** Buffer:')
-        print(self.conversation_sum_bufw.memory.buffer)
-
-        if (
-            self.llm.get_num_tokens_from_messages(self.history.messages)
-            > (settings.model.ctx - settings.model.max_tokens) * 0.9
-        ):
-            self.history.clear()
-            self.conversation_sum_bufw.memory.clear()
-
-        return self.conversation_sum_bufw.invoke(text)
-
-    def predict_single(self, prompt: str) -> str:
-        return self.llm.invoke(prompt)
+        self.conversation_sum_bufw.llm.verbose = True
