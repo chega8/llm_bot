@@ -18,7 +18,6 @@ from telegram.ext import (
     filters,
 )
 
-from models.models import SaigaLLM
 from src.bot.handlers import *
 from src.conf import settings
 

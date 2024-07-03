@@ -10,6 +10,7 @@ from langchain.schema import (
     SystemMessage,
 )
 from langchain.schema.messages import BaseMessage, messages_from_dict, messages_to_dict
+from langchain_core.pydantic_v1 import BaseModel, Field
 from loguru import logger
 
 from src.conf import Role, settings
@@ -137,3 +138,16 @@ class PostgresHistory(BaseChatMessageHistory):
 
     def clear(self):
         self.postgres.clear_messages()
+
+
+class InMemoryHistory(BaseChatMessageHistory, BaseModel):
+    """In memory implementation of chat message history."""
+
+    messages: List[BaseMessage] = Field(default_factory=list)
+
+    def add_messages(self, messages: List[BaseMessage]) -> None:
+        """Add a list of messages to the store"""
+        self.messages.extend(messages)
+
+    def clear(self) -> None:
+        self.messages = []

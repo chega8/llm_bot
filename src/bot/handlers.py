@@ -4,9 +4,10 @@ from loguru import logger
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from src.services.text_bot_service import TextSerivce
+from src.services.text_bot_service import TextSerivce, TextSerivcev2
 
 text_bot_service = TextSerivce()
+# text_bot_service2 = TextSerivcev2()
 
 
 async def text_chat_history_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):

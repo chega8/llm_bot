@@ -7,7 +7,7 @@ from loguru import logger
 from src.conf import settings
 from src.data.history import PostgresHistory
 from src.dep.postgres import get_postgres
-from src.services.llm_service import LLMConversationService
+from src.services.llm_service import LLMConversationService, LLMConversationServicev2
 
 ID_TO_NAME = {
     566572635: "Саша 1",
@@ -17,15 +17,26 @@ ID_TO_NAME = {
 }
 
 
+def error_handler(func):
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as ex:
+            logger.error(ex)
+            return "😿"
+
+    return wrapper
+
+
 class TextSerivce:
     def __init__(self):
         self.conversation_service = LLMConversationService()
         self.pg_conn = get_postgres()
 
+    @error_handler
     def text_chat_history(
         self, chat_id: str, user_id: str, text: str, msg_date: datetime = None
     ):
-        # try:
         user_id = str(user_id)
         chat_id = str(chat_id)
 
@@ -33,22 +44,16 @@ class TextSerivce:
         self.conversation_service.init_conversation_buffer(history)
         prediction = self.conversation_service.generate_response_for_history(text)
         reply_msg = prediction['response']
-        # except Exception as ex:
-        #     logger.error(ex)
-        #     reply_msg = "😿"
         return reply_msg
 
+    @error_handler
     def single_message_predict(
         self, chat_id: str, user_id: str, text: str, msg_date: datetime
     ):
-        # try:
         user_id = str(user_id)
         chat_id = str(chat_id)
         prediction = self.conversation_service.predict_single(text)
         reply_msg = prediction['response']
-        # except Exception as ex:
-        #     logger.error(ex)
-        #     reply_msg = "😿"
         return reply_msg
 
     def collect_chat_history(
@@ -95,3 +100,28 @@ class TextSerivce:
         history = PostgresHistory(user_id, chat_id, self.pg_conn)
         history.clear()
         return "Context dropped!"
+
+
+class TextSerivcev2:
+    def __init__(self):
+        self.conversation_service = LLMConversationServicev2()
+        self.pg_conn = get_postgres()
+
+    # @error_handler
+    def text_chat_history(
+        self, chat_id: str, user_id: str, text: str, msg_date: datetime = None
+    ):
+        user_id = str(user_id)
+        chat_id = str(chat_id)
+
+        response = self.conversation_service.with_message_history.invoke(
+            {"input": text},
+            config={
+                "configurable": {
+                    "user_id": user_id,
+                    "chat_id": chat_id,
+                    "conn": self.pg_conn,
+                }
+            },
+        )
+        return response

@@ -2,20 +2,31 @@ import os
 import sys
 from typing import Sequence
 
+from src.data.history import InMemoryHistory, PostgresHistory
+from src.dep.postgres import get_postgres
+
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from langchain.chains import ConversationChain
 from langchain.chains.combine_documents.stuff import StuffDocumentsChain
 from langchain.chains.conversation.memory import ConversationSummaryBufferMemory
 from langchain.chains.llm import LLMChain
-from langchain.chains.summarize import load_summarize_chain
-from langchain.schema import BaseChatMessageHistory, BaseMessage
-from langchain_core.prompts import PromptTemplate
+from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain_core.chat_history import BaseChatMessageHistory
+from langchain_core.prompts import (
+    ChatPromptTemplate,
+    MessagesPlaceholder,
+    PromptTemplate,
+)
+from langchain_core.runnables import ConfigurableFieldSpec
+from langchain_core.runnables.history import RunnableWithMessageHistory
 from loguru import logger
 
 from data.prompts import SUMMARY_PROMPT, mistral_saiga
 from src.conf import settings
 from src.dep.llm import get_saiga_llm_llamacpp
+
+HISTORY_STORE = {}
 
 
 class LLMConversationService:
@@ -31,7 +42,7 @@ class LLMConversationService:
             llm=self.llm, prompt=PromptTemplate.from_template(SUMMARY_PROMPT)
         )
 
-    def generate_response_for_history(self, text: str) -> str:
+    def generate_response_for_history(self, text: str) -> dict:
         # print('\n**** Buffer:')
         # print(self.conversation_sum_bufw.memory.buffer)
 
@@ -57,7 +68,7 @@ class LLMConversationService:
         self.conversation_sum_bufw.memory.chat_memory.session_id = chat_id
         self.conversation_sum_bufw.memory.chat_memory.user_id = user_id
 
-    def predict_single(self, prompt: str) -> str:
+    def predict_single(self, prompt: str) -> dict:
         return self.llm_chain.invoke(prompt)
 
     def init_conversation_buffer(self, history=None):
@@ -83,3 +94,59 @@ class LLMConversationService:
             ),
         )
         self.conversation_sum_bufw.llm.verbose = True
+
+
+class LLMConversationServicev2:
+    def __init__(self):
+        self.llm = get_saiga_llm_llamacpp()
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    "Ты — Сайга, русскоязычный автоматический ассистент. Ты разговариваешь с людьми и помогаешь им.",
+                ),
+                MessagesPlaceholder(variable_name="history"),
+                ("human", "{input}"),
+            ]
+        )
+        self.runnable = prompt | self.llm
+
+        def get_session_history(
+            user_id: str, chat_id: str, conn
+        ) -> BaseChatMessageHistory:
+            return InMemoryHistory()
+            # if (user_id, chat_id) not in HISTORY_STORE:
+            #     HISTORY_STORE[(user_id, chat_id)] = PostgresHistory(user_id, chat_id, conn)
+            # return HISTORY_STORE[(user_id, chat_id)]
+
+        self.with_message_history = RunnableWithMessageHistory(
+            self.runnable,
+            get_session_history,
+            input_messages_key="input",
+            history_messages_key="history",
+            history_factory_config=[
+                ConfigurableFieldSpec(
+                    id="user_id",
+                    annotation=str,
+                    name="User ID",
+                    description="Unique identifier for the user.",
+                    default="",
+                    is_shared=True,
+                ),
+                ConfigurableFieldSpec(
+                    id="chat_id",
+                    annotation=str,
+                    name="Conversation ID",
+                    description="Unique identifier for the conversation.",
+                    default="",
+                    is_shared=True,
+                ),
+                ConfigurableFieldSpec(
+                    id="conn",
+                    annotation=str,
+                    name="pg conn",
+                    description="pg conn",
+                    is_shared=True,
+                ),
+            ],
+        )
