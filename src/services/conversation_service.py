@@ -67,7 +67,7 @@ class LLMConversationService:
         logger.info(f"Text messages: {text_messages}")
 
         text_messages = text_messages[
-            : (settings.model.ctx - settings.model.max_tokens) * 2.5
+            : ((settings.model.ctx - settings.model.max_tokens) * 2.5)
         ]
         return chain.invoke(text_messages)
 
