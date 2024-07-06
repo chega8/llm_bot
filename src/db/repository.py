@@ -45,7 +45,8 @@ class MessageRepository:
         if role:
             query = query.filter(self.schema.role == role)
         if limit:
-            query = query.limit(limit)
+            query = query.order_by(self.schema.datetime.desc()).limit(limit)
+            return query.all()[::-1]
         return query.all()
 
     def clear_messages(self):

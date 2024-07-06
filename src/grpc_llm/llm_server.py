@@ -12,7 +12,7 @@ from langchain.schema import AIMessage, HumanMessage, SystemMessage
 from src.data.history import PostgresHistory
 from src.dep.postgres import get_postgres
 from src.grpc_llm import llm_service_pb2, llm_service_pb2_grpc
-from src.services.llm_service import LLMConversationService
+from src.services.conversation_service import LLMConversationService
 from src.services.text_bot_service import TextSerivce
 
 

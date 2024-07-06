@@ -8,11 +8,15 @@ from src.dep.postgres import get_postgres
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from langchain.chains import ConversationChain
-from langchain.chains.combine_documents.stuff import StuffDocumentsChain
 from langchain.chains.conversation.memory import ConversationSummaryBufferMemory
 from langchain.chains.llm import LLMChain
-from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain.memory import (
+    ChatMessageHistory,
+    ConversationBufferMemory,
+    ConversationSummaryMemory,
+)
 from langchain_core.chat_history import BaseChatMessageHistory
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.prompts import (
     ChatPromptTemplate,
     MessagesPlaceholder,
@@ -34,33 +38,38 @@ class LLMConversationService:
         self.history = None
 
         self.llm = get_saiga_llm_llamacpp()
-        self.llm_chain = LLMChain(
-            llm=self.llm,
-            prompt=PromptTemplate.from_template(mistral_saiga["default_system_prompt"]),
-        )
-        self.summary_chain = LLMChain(
-            llm=self.llm, prompt=PromptTemplate.from_template(SUMMARY_PROMPT)
-        )
 
-    def generate_response_for_history(self, text: str) -> dict:
+    def chat(self, text: str) -> dict:
         # print('\n**** Buffer:')
         # print(self.conversation_sum_bufw.memory.buffer)
+
+        text = text.strip().replace('/chat', '')
 
         if (
             self.llm.get_num_tokens_from_messages(self.history.messages)
             > (settings.model.ctx - settings.model.max_tokens) * 0.9
         ):
-            self.conversation_sum_bufw.memory.clear()
+            self.conversation_chain.memory.clear()
             logger.info("Buffer cleared")
 
-        return self.conversation_sum_bufw.invoke(text)
+        return self.conversation_chain.invoke(text)
 
     def summary(self) -> str:
         messages = self.history.messages
-        inp = "\n".join([f"{msg.type}: {msg.content}" for msg in messages[1:]])
-        logger.info(f"Summary input: {inp[:100]}")
-        # return self.summary_chain.invoke(inp)
-        return self.summary_chain.invoke(messages)
+        prompt = PromptTemplate(
+            template=mistral_saiga["conversation_summary_prompt"],
+            input_variables=['text'],
+        )
+        chain = prompt | self.llm
+        text_messages = '\n'.join(
+            [m.content for m in messages if isinstance(m, HumanMessage)]
+        )
+        logger.info(f"Text messages: {text_messages}")
+
+        text_messages = text_messages[
+            : (settings.model.ctx - settings.model.max_tokens) * 2.5
+        ]
+        return chain.invoke(text_messages)
 
     def set_args(self, chat_id: str, user_id: str, timestamp=None):
         self.history.session_id = chat_id
@@ -68,32 +77,51 @@ class LLMConversationService:
         self.conversation_sum_bufw.memory.chat_memory.session_id = chat_id
         self.conversation_sum_bufw.memory.chat_memory.user_id = user_id
 
-    def predict_single(self, prompt: str) -> dict:
-        return self.llm_chain.invoke(prompt)
+    def message(self, prompt: str) -> dict:
+        messages = [
+            SystemMessage(content=mistral_saiga["default_system_prompt"]),
+            HumanMessage(content=prompt),
+        ]
+        return self.llm.invoke(messages)
 
     def init_conversation_buffer(self, history=None):
         self.history = history
-        self.conversation_sum_bufw = ConversationChain(
+
+        # mem = ConversationSummaryMemory.from_messages(
+        #     llm=self.llm,
+        #     chat_memory=self.history,
+        #     return_messages=True,
+        #     prompt=PromptTemplate(
+        #         template=mistral_saiga["conversation_summary_prompt"],
+        #         input_variables=['summary', 'new_lines'],
+        #     )
+        # )
+
+        self.conversation_chain = ConversationChain(
             llm=self.llm,
             prompt=PromptTemplate(
                 template=mistral_saiga["conversation_prompt"],
                 input_variables=['history', 'input'],
             ),
             verbose=True,
-            memory=ConversationSummaryBufferMemory(
+            memory=ConversationBufferMemory(
                 llm=self.llm,
                 max_token_limit=650,
                 human_prefix='Человек',
                 ai_prefix='ИИ',
-                prompt=PromptTemplate(
-                    template=mistral_saiga["conversation_summary_prompt"],
-                    input_variables=['summary', 'new_lines'],
-                ),
                 chat_memory=history,
                 verbose=True,
             ),
         )
-        self.conversation_sum_bufw.llm.verbose = True
+        self.conversation_chain.llm.verbose = True
+
+    def toxicity(self, text: str) -> str:
+        prompt = PromptTemplate(
+            template=mistral_saiga["toxic_clf_prompt"],
+            input_variables=['text'],
+        )
+        chain = prompt | self.llm
+        return chain.invoke(text)
 
 
 class LLMConversationServicev2:

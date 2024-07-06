@@ -1,4 +1,5 @@
 import asyncio
+import random
 
 from loguru import logger
 from telegram import Update
@@ -89,6 +90,15 @@ async def handle_store_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
         update.message.text,
         update.message.date,
     )
+
+    if random.random() < 0.05:
+        reply_msg = text_bot_service.toxic_predict(update.message.text)
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=reply_msg,
+            reply_to_message_id=update.message.id,
+        )
+
     await asyncio.sleep(0)
 
 

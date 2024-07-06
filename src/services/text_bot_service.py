@@ -7,7 +7,10 @@ from loguru import logger
 from src.conf import settings
 from src.data.history import PostgresHistory
 from src.dep.postgres import get_postgres
-from src.services.llm_service import LLMConversationService, LLMConversationServicev2
+from src.services.conversation_service import (
+    LLMConversationService,
+    LLMConversationServicev2,
+)
 
 ID_TO_NAME = {
     566572635: "Саша 1",
@@ -42,7 +45,7 @@ class TextSerivce:
 
         history = PostgresHistory(user_id, chat_id, self.pg_conn)
         self.conversation_service.init_conversation_buffer(history)
-        prediction = self.conversation_service.generate_response_for_history(text)
+        prediction = self.conversation_service.chat(text)
         reply_msg = prediction['response']
         return reply_msg
 
@@ -52,8 +55,8 @@ class TextSerivce:
     ):
         user_id = str(user_id)
         chat_id = str(chat_id)
-        prediction = self.conversation_service.predict_single(text)
-        reply_msg = prediction['response']
+        reply_msg = self.conversation_service.message(text)
+        # reply_msg = prediction['response']
         return reply_msg
 
     def collect_chat_history(
@@ -77,8 +80,8 @@ class TextSerivce:
     def show_chat_history(self, chat_id: str, user_id: str) -> list[str]:
         user_id = str(user_id)
         chat_id = str(chat_id)
-        chat_history = PostgresHistory(user_id, chat_id, get_postgres())
-        return "\n\n".join([msg.content for msg in chat_history.messages])
+        chat_history = PostgresHistory(user_id, chat_id, self.pg_conn)
+        return "\n".join([msg.content for msg in chat_history.messages])
 
     def history_summary(self, chat_id: str, user_id: str) -> str:
         user_id = str(user_id)
@@ -86,10 +89,14 @@ class TextSerivce:
 
         history = PostgresHistory(user_id, chat_id, get_postgres())
         self.conversation_service.init_conversation_buffer(history)
-        prediction = self.conversation_service.summary()
-        reply_msg = prediction['response']
+        reply_msg = self.conversation_service.summary()
+        # reply_msg = prediction['response']
 
         return reply_msg
+
+    def toxic_predict(self, text: str) -> str:
+        prediction = self.conversation_service.toxicity(text)
+        return prediction
 
     def search_agent_service(self, user_id: str, text: str, msg_date: datetime):
         ...
