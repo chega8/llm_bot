@@ -91,8 +91,10 @@ async def handle_store_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
         update.message.date,
     )
 
-    if random.random() < 0.05:
-        reply_msg = text_bot_service.toxic_predict(update.message.text)
+    txt = update.message.text
+
+    if random.random() < 0.05 and len(txt.split()) > 1:
+        reply_msg = text_bot_service.toxic_predict(txt)
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text=reply_msg,
