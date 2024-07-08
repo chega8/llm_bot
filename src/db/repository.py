@@ -49,6 +49,6 @@ class MessageRepository:
             return query.all()[::-1]
         return query.all()
 
-    def clear_messages(self):
-        self.db.query(self.schema).delete()
+    def clear_messages(self, chat_id):
+        self.db.query(self.schema).filter(self.schema.chat_id == chat_id).delete()
         self.db.commit()

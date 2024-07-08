@@ -37,6 +37,7 @@ def main() -> None:
             CommandHandler("agent", search_handler, block=False),
             CommandHandler("show", show_history, block=False),
             CommandHandler("summary", show_history_summary, block=False),
+            CommandHandler("tox", tox, block=False),
             MessageHandler(filters.TEXT, handle_store_msg, block=False),
         ]
     )

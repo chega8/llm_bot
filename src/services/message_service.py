@@ -29,5 +29,5 @@ class MessageService:
             chat_id=chat_id, user_id=user_id, role=role, datetime=datetime, limit=limit
         )
 
-    def clear_messages(self):
-        return self.repository.clear_messages()
+    def clear_messages(self, chat_id: str):
+        return self.repository.clear_messages(chat_id)

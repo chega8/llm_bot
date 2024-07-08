@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import datetime
 
 from langchain.schema import AIMessage, HumanMessage, SystemMessage
@@ -42,6 +43,8 @@ class TextSerivce:
     ):
         user_id = str(user_id)
         chat_id = str(chat_id)
+
+        text = text.strip().replace("/chat ", "")
 
         history = PostgresHistory(user_id, chat_id, self.pg_conn)
         self.conversation_service.init_conversation_buffer(history)
@@ -96,7 +99,15 @@ class TextSerivce:
 
     def toxic_predict(self, text: str) -> str:
         prediction = self.conversation_service.toxicity(text)
-        return prediction
+
+        pattern = re.compile(r"токсичность: (\d+)%")
+        match = pattern.search(prediction)
+        if match:
+            toxicity = int(match.group(1))
+            if toxicity > 30:
+                return f"Токсичность: {toxicity}%"
+            else:
+                return "Токсичность: 0%"
 
     def search_agent_service(self, user_id: str, text: str, msg_date: datetime):
         ...

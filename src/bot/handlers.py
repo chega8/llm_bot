@@ -8,6 +8,8 @@ from telegram.ext import ContextTypes
 from src.services.text_bot_service import TextSerivce, TextSerivcev2
 
 text_bot_service = TextSerivce()
+
+
 # text_bot_service2 = TextSerivcev2()
 
 
@@ -93,7 +95,7 @@ async def handle_store_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     txt = update.message.text
 
-    if random.random() < 0.05 and len(txt.split()) > 1:
+    if len(txt.split()) > 1 and random.random() < 0.05:
         reply_msg = text_bot_service.toxic_predict(txt)
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -120,6 +122,18 @@ async def show_history_summary(update: Update, context: ContextTypes.DEFAULT_TYP
     reply_msg = text_bot_service.history_summary(
         update.effective_chat.id, update.message.from_user.id
     )
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=reply_msg,
+        reply_to_message_id=update.message.id,
+    )
+
+
+async def tox(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    txt = update.message.text
+
+    reply_msg = text_bot_service.toxic_predict(txt)
+
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text=reply_msg,

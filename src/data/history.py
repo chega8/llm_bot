@@ -137,7 +137,7 @@ class PostgresHistory(BaseChatMessageHistory):
             )
 
     def clear(self):
-        self.postgres.clear_messages()
+        self.postgres.clear_messages(self.session_id)
 
 
 class InMemoryHistory(BaseChatMessageHistory, BaseModel):

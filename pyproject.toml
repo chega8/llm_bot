@@ -9,7 +9,6 @@ packages = [{include = "llm_bot"}]
 [tool.poetry.dependencies]
 python = "^3.11"
 llama-cpp-python = "^0.2.77"
-langchain = "^0.2.3"
 langchain-community = "^0.2.4"
 python-dotenv = "^1.0.1"
 pydantic = "^2.7.3"
@@ -31,6 +30,7 @@ psycopg2 = "^2.9.9"
 asyncpg = "^0.29.0"
 grpcio = "^1.64.1"
 grpcio-tools = "^1.64.1"
+langchain = "^0.2.6"
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.29.4"
