@@ -73,12 +73,6 @@ class LLMConversationService:
         ]
         return chain.invoke(text_messages)
 
-    def set_args(self, chat_id: str, user_id: str, timestamp=None):
-        self.history.session_id = chat_id
-        self.history.user_id = user_id
-        self.conversation_sum_bufw.memory.chat_memory.session_id = chat_id
-        self.conversation_sum_bufw.memory.chat_memory.user_id = user_id
-
     def message(self, prompt: str) -> dict:
         messages = [
             SystemMessage(content=mistral_saiga["default_system_prompt"]),
