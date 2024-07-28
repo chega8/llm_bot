@@ -9,7 +9,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 from src.conf import settings
-from src.db.schema import Message, TestMessage
+from src.db.schema import Message, TestMessage, Tox
 
 
 def drop_table(schema, Base):
@@ -28,7 +28,8 @@ if __name__ == "__main__":
 
     drop_table(Message, Base)
     drop_table(TestMessage, Base)
+    drop_table(Tox, Base)
 
     Base.metadata.create_all(
-        bind=engine, tables=[Message.__table__, TestMessage.__table__]
+        bind=engine, tables=[Message.__table__, TestMessage.__table__, Tox.__table__]
     )

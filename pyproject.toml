@@ -31,6 +31,9 @@ asyncpg = "^0.29.0"
 grpcio = "^1.64.1"
 grpcio-tools = "^1.64.1"
 langchain = "^0.2.6"
+torch = "^2.4.0"
+transformers = "^4.43.3"
+sentencepiece = "^0.2.0"
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.29.4"

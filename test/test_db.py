@@ -17,7 +17,6 @@ from src.conf import Role, settings
 from src.db.repository import MessageRepository
 from src.db.schema import TestMessage
 from src.dep.postgres import get_postgres
-from src.services.message_service import MessageService
 
 Base = declarative_base()
 

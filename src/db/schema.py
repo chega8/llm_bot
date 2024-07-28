@@ -1,5 +1,5 @@
 import sqlalchemy
-from sqlalchemy import Column, DateTime, Enum, Integer, String, create_engine
+from sqlalchemy import Column, DateTime, Enum, Float, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 
 from src.conf import Role
@@ -19,6 +19,16 @@ class Message(Base):
     message = Column(String)
     # role = Column(Enum("user", "ai", "system", name="role", create_type=False), default=Role.USER.value)
     role = Column(role_type, default=Role.USER.value)
+    datetime = Column(DateTime)
+
+
+class Tox(Base):
+    __tablename__ = 'tox'
+    id = Column(Integer, primary_key=True, index=True)
+    chat_id = Column(String, index=True)
+    user_id = Column(String, index=True)
+    message = Column(String)
+    tox = Column(Float)
     datetime = Column(DateTime)
 
 

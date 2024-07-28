@@ -1,7 +1,9 @@
+from datetime import datetime
+
 from sqlalchemy.orm import Session
 
 from src.conf import Role
-from src.db.schema import Message
+from src.db.schema import Message, Tox
 
 
 class MessageRepository:
@@ -10,14 +12,14 @@ class MessageRepository:
         self.schema = schema
 
     def insert_message(
-        self, chat_id: str, user_id: str, message: str, role: Role, datetime
+        self, chat_id: str, user_id: str, message: str, role: Role, dt=datetime.now()
     ):
         db_message = self.schema(
             chat_id=chat_id,
             user_id=user_id,
             message=message,
             role=role,
-            datetime=datetime,
+            datetime=dt,
         )
         self.db.add(db_message)
         self.db.commit()
@@ -32,7 +34,7 @@ class MessageRepository:
         chat_id: str = None,
         user_id: str = None,
         role: Role = None,
-        datetime=None,
+        dt=None,
         limit: int = None,
     ):
         query = self.db.query(self.schema)
@@ -40,8 +42,8 @@ class MessageRepository:
             query = query.filter(self.schema.chat_id == chat_id)
         if user_id:
             query = query.filter(self.schema.user_id == user_id)
-        if datetime:
-            query = query.filter(self.schema.datetime > datetime)
+        if dt:
+            query = query.filter(self.schema.datetime > dt)
         if role:
             query = query.filter(self.schema.role == role)
         if limit:
@@ -52,3 +54,28 @@ class MessageRepository:
     def clear_messages(self, chat_id):
         self.db.query(self.schema).filter(self.schema.chat_id == chat_id).delete()
         self.db.commit()
+
+
+class ToxRepository:
+    def __init__(self, db: Session, schema=Tox):
+        self.db = db
+        self.schema = schema
+
+    def insert_message(
+        self, chat_id: str, user_id: str, message: str, tox: float, dt=datetime.now()
+    ):
+
+        db_message = self.schema(
+            chat_id=chat_id,
+            user_id=user_id,
+            message=message,
+            tox=tox,
+            datetime=dt,
+        )
+        self.db.add(db_message)
+        self.db.commit()
+        self.db.refresh(db_message)
+        return db_message
+
+    def get_messages(self) -> list[Tox]:
+        return self.db.query(self.schema).all()

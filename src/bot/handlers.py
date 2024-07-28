@@ -95,7 +95,7 @@ async def handle_store_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     txt = update.message.text
 
-    if len(txt.split()) > 1 and random.random() < 0.05:
+    if len(txt.split()) > 1 and random.random() < 0.01:
         reply_msg = text_bot_service.toxic_predict(txt)
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
@@ -120,7 +120,7 @@ async def show_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def show_history_summary(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_msg = text_bot_service.history_summary(
-        update.effective_chat.id, update.message.from_user.id
+        update.effective_chat.id, update.message.from_user.id, update.message.text
     )
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
@@ -130,9 +130,11 @@ async def show_history_summary(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 async def tox(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    txt = update.message.text
-
-    reply_msg = text_bot_service.toxic_predict(txt)
+    reply_msg = text_bot_service.toxic_predict(
+        update.effective_chat.id,
+        update.message.from_user.id,
+        update.message.text,
+    )
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id,

@@ -21,6 +21,8 @@ from telegram.ext import (
 from src.bot.handlers import *
 from src.conf import settings
 
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
 
 def main() -> None:
     Path(".tmp").mkdir(parents=True, exist_ok=True)

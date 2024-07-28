@@ -7,11 +7,13 @@ from loguru import logger
 
 from src.conf import settings
 from src.data.history import PostgresHistory
+from src.db.repository import ToxRepository
 from src.dep.postgres import get_postgres
 from src.services.conversation_service import (
     LLMConversationService,
     LLMConversationServicev2,
 )
+from src.services.summary_service import SummaryService
 
 ID_TO_NAME = {
     566572635: "Саша 1",
@@ -35,6 +37,7 @@ def error_handler(func):
 class TextSerivce:
     def __init__(self):
         self.conversation_service = LLMConversationService()
+        self.summary_service = SummaryService()
         self.pg_conn = get_postgres()
 
     @error_handler
@@ -56,8 +59,7 @@ class TextSerivce:
     def single_message_predict(
         self, chat_id: str, user_id: str, text: str, msg_date: datetime
     ):
-        user_id = str(user_id)
-        chat_id = str(chat_id)
+        text = text.replace('/msg', '')
         reply_msg = self.conversation_service.message(text)
         # reply_msg = prediction['response']
         return reply_msg
@@ -80,34 +82,42 @@ class TextSerivce:
         ]
         history.add_messages(messages)
 
-    def show_chat_history(self, chat_id: str, user_id: str) -> list[str]:
+    def show_chat_history(self, chat_id: str, user_id: str) -> str:
         user_id = str(user_id)
         chat_id = str(chat_id)
         chat_history = PostgresHistory(user_id, chat_id, self.pg_conn)
         return "\n".join([msg.content for msg in chat_history.messages])
 
-    def history_summary(self, chat_id: str, user_id: str) -> str:
+    def history_summary(self, chat_id: str, user_id: str, text) -> str:
         user_id = str(user_id)
         chat_id = str(chat_id)
 
-        history = PostgresHistory(user_id, chat_id, get_postgres())
-        self.conversation_service.init_conversation_buffer(history)
-        reply_msg = self.conversation_service.summary()
-        # reply_msg = prediction['response']
+        history = PostgresHistory(user_id, chat_id, self.pg_conn)
+        reply_msg = self.summary_service.summarize_history(history)
 
+        text = text.replace('/summary', '')
+        if len(text) > 1:
+            text = 'summary: {}\nuser: {}\nai: '.format(reply_msg, text)
+
+            print(text)
+            reply_msg = self.conversation_service.message(text)
         return reply_msg
 
-    def toxic_predict(self, text: str) -> str:
+    def toxic_predict(self, chat_id: str, user_id: str, text: str) -> str:
+        text = text.replace('/tox', '')
         prediction = self.conversation_service.toxicity(text)
 
         pattern = re.compile(r"токсичность: (\d+)%")
         match = pattern.search(prediction)
+
         if match:
             toxicity = int(match.group(1))
+
+            rep = ToxRepository(self.pg_conn)
+
+            rep.insert_message(chat_id, user_id, message=text, tox=toxicity)
             if toxicity > 30:
                 return f"Токсичность: {toxicity}%"
-            else:
-                return "Токсичность: 0%"
 
     def search_agent_service(self, user_id: str, text: str, msg_date: datetime):
         ...
